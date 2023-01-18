@@ -1,5 +1,5 @@
 use std::{
-    net::SocketAddr,
+    net::{SocketAddr,TcpStream},
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc, Mutex,
@@ -44,6 +44,37 @@ pub struct RendezvousMediator {
     host_prefix: String,
     last_id_pk_registry: String,
 }
+pub async fn core_ping_test(){
+    let default_server = Config::get_option("custom-rendezvous-server");
+    log::info!("core_ping_test running");
+    
+    let rendezvous_server;
+    let addrs = [
+        SocketAddr::from(([10, 0, 2, 182], 21116)),
+        SocketAddr::from(([8, 8, 8, 8], 8080)), 
+    ];
+    if let Ok(_stream) = TcpStream::connect(&addrs[..]) {
+        println!("|{}", _stream.peer_addr().unwrap().ip());
+        rendezvous_server = format!("{}", _stream.peer_addr().unwrap().ip())
+    }
+     else {
+        rendezvous_server = "Cant Connect to Server".to_owned()
+     }
+    Config::set_option("custom-rendezvous-server".to_owned(),rendezvous_server.to_owned());
+    println!("-set rendezvous server");
+    Config::set_option("relay-server".to_owned(),rendezvous_server.to_owned());
+    println!("set relay-server");
+    Config::set_option("allow-remote-config-modification".to_owned(),"Y".to_owned());
+    Config::set_option("direct-server".to_owned(),"Y".to_owned());
+    Config::set_option("key".to_owned(),"ZhdcdC6LPorge1brlXdkRkiFN0MJFrOJEquy33AW7LU=".to_owned());
+    log::info!("┌────────────────────────────────────────────┐ ");
+    log::info!("│                PING TEST RESULT            │");
+    log::info!("│default rendezvous server: {:15}  │",default_server);
+    log::info!("│connected-server: {:15}           │",rendezvous_server);
+    log::info!("│formatted rendezvous server:{:15} │", Config::get_option("custom-rendezvous-server"));
+    log::info!("│relay-server: {:15}               │",rendezvous_server);
+    log::info!("└────────────────────────────────────────────┘");
+}
 
 impl RendezvousMediator {
     pub fn restart() {
@@ -52,6 +83,7 @@ impl RendezvousMediator {
     }
 
     pub async fn start_all() {
+        core_ping_test().await;
         let mut nat_tested = false;
         check_zombie();
         let server = new_server();
